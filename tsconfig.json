@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "module": "ESNext",
+    "target": "ESNext",
+    "sourceMap": true,
+    "moduleResolution": "Node",
+    "declaration": true,
+    "esModuleInterop": true
+  },
+  "exclude": [
+    "node_modules",
+    "src/**/*.test.ts"
+  ],
+  "include": [
+    "src/**/*.ts"
+  ]
+}
