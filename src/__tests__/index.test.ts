@@ -50,4 +50,40 @@ describe("axios mock",() => {
             statusText: 'bad request'
         }));
     });
+    it('will save request history', async function () {
+        const {instance,adapter} =mock('/api')
+        await instance.get('/api',{
+            params: {
+                name: 'params'
+            }
+        })
+        await instance.request({
+            url: '/api',
+            data: {
+                name: 'data'
+            }
+        });
+        const history = adapter.findRequest({url: '/api'}).history;
+        expect(history[0].request.params).toEqual({name: 'params'})
+        expect(history[0].response.data).toEqual('ddd')
+        expect(history[1].request.data).toEqual(JSON.stringify({name: 'data'}))
+        expect(history[1].response.data).toEqual('ddd')
+    });
+    test('it can save latest request config ', async () => {
+        const {instance, adapter} = mock('/api')
+        const requestItem = adapter.findRequest({url: '/api'})
+        await instance.get('/api', {
+            params: {
+                name: 'params'
+            }
+        })
+        expect(requestItem.latestConfig.params).toEqual({name: 'params'})
+        await instance.request({
+            url: '/api',
+            data: {
+                name: 'data'
+            }
+        });
+        expect(requestItem.latestConfig.data).toEqual(JSON.stringify({name: 'data'}));
+    });
 })

@@ -1,15 +1,34 @@
-import {AxiosAdapter, AxiosInstance, AxiosRequestConfig} from 'axios';
+import {AxiosAdapter, AxiosInstance, AxiosRequestConfig, AxiosResponse} from 'axios';
 import {pathToRegexp} from 'path-to-regexp'
 import {default404Res, ResponseHandler} from "./ResponseHandler";
 export {ResponseHandler}
-type ListItem = {
-    request: AxiosRequestConfig,
-    responseHandler: ResponseHandler
+// 每个请求的地址对应一个requestItem。请求后保存请求和响应的记录
+export class RequestItem {
+    config: AxiosRequestConfig
+    latestConfig: AxiosRequestConfig
+    responseHandler: ResponseHandler = new ResponseHandler()
+    history: {
+        request: AxiosRequestConfig,
+        response: AxiosResponse;
+    }[]=[];
+    constructor(config:AxiosRequestConfig) {
+        this.config = config;
+        this.latestConfig = config;
+    }
+    exec= async (config: AxiosRequestConfig) => {
+        this.latestConfig = config;
+        const res = await this.responseHandler.exec()
+        this.history.push({
+            request: config,
+            response: res
+        });
+        return res
+    }
 }
 export class MockAdapter{
     private originAxiosInstance: AxiosInstance;
     private originAxiosInstanceAdapter: AxiosAdapter
-    private requestList: ListItem[] = [];
+    private requestList: RequestItem[] = [];
     constructor(axiosInstance: AxiosInstance) {
         this.originAxiosInstance = axiosInstance;
         this.originAxiosInstanceAdapter = axiosInstance.defaults.adapter;
@@ -25,7 +44,7 @@ export class MockAdapter{
     findRequest = (config: AxiosRequestConfig) => {
         const targetUrl: string = config.url;
         return this.requestList.find(value => {
-            const originUrl = value.request.url + (value.request.baseURL || '');
+            const originUrl = value.config.url + (value.config.baseURL || '');
             if (typeof originUrl === "string" && originUrl.includes(':')) {
                 // this is path variable
                 const regex:RegExp = pathToRegexp(originUrl);
@@ -40,15 +59,13 @@ export class MockAdapter{
         if (!requestItem) {
             return Promise.resolve(default404Res)
         }
-        return requestItem.responseHandler.exec();
+        return requestItem.exec(config)
     }
-
+    // onRequest建立一个以请求域名为唯一ID的requestItem，
+    // 同一个域名下可以有多个请求响应对
     onRequest = (config: AxiosRequestConfig) => {
-        const handler = new ResponseHandler();
-        this.requestList.push({
-            request: config,
-            responseHandler: handler
-        });
-        return handler;
+        const requestItem = new RequestItem(config)
+        this.requestList.push(requestItem);
+        return requestItem.responseHandler;
     };
 }
