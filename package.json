@@ -1,6 +1,6 @@
 {
   "name": "@jueinin/axios-mock",
-  "version": "0.0.2",
+  "version": "0.0.4",
   "private": false,
   "main": "build/lib/index.js",
   "module": "build/es/index.js",

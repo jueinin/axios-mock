@@ -86,4 +86,29 @@ describe("axios mock",() => {
         });
         expect(requestItem.latestConfig.data).toEqual(JSON.stringify({name: 'data'}));
     });
+    test('support restful api',async () => {
+        const instance = Axios.create({});
+        const adapter = new MockAdapter(instance);
+        adapter.onRequest({
+            url: '/xxx',
+            method: 'get'
+        }).reply({
+            data: 'get'
+        });
+        adapter.onRequest({
+            url: '/xxx',
+            method: 'post'
+        }).reply({
+            data: 'post'
+        });
+        const post = await instance.request({
+            url: '/xxx',
+            method: 'POST'
+        })
+        expect(post.data).toEqual('post')
+        const get = await instance.request({
+            url: '/xxx',
+        });
+        expect(get.data).toEqual('get');
+    })
 })

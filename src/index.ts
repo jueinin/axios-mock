@@ -43,16 +43,27 @@ export class MockAdapter{
      */
     findRequest = (config: AxiosRequestConfig) => {
         const targetUrl: string = config.url;
-        return this.requestList.find(value => {
+        const targetMethod = config.method.toLowerCase();
+        const requestList = this.requestList.filter(value => {
             const originUrl = value.config.url + (value.config.baseURL || '');
             if (typeof originUrl === "string" && originUrl.includes(':')) {
                 // this is path variable
-                const regex:RegExp = pathToRegexp(originUrl);
+                const regex: RegExp = pathToRegexp(originUrl);
                 return regex.test(targetUrl)
             } else {
                 return targetUrl === originUrl
             }
-        })
+        });
+        if (requestList.length <= 1) {
+            return requestList[0]
+        }
+        // support RESTful API
+        if (requestList.length > 1) {
+            return requestList.find(item => {
+                const method = item.config.method.toLowerCase();
+                return method === targetMethod
+            })
+        }
     }
     private adapter:AxiosAdapter = (config: AxiosRequestConfig) => {
         const requestItem = this.findRequest(config);
