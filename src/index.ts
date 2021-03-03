@@ -2,6 +2,7 @@ import {AxiosAdapter, AxiosInstance, AxiosRequestConfig, AxiosResponse} from 'ax
 import {pathToRegexp} from 'path-to-regexp'
 import {default404Res, ResponseHandler} from "./ResponseHandler";
 export {ResponseHandler}
+const stringSimilarity = require('string-similarity');
 // 每个请求的地址对应一个requestItem。请求后保存请求和响应的记录
 export class RequestItem {
     config: AxiosRequestConfig
@@ -43,7 +44,7 @@ export class MockAdapter{
      */
     findRequest = (config: AxiosRequestConfig) => {
         const targetUrl: string = config.url;
-        const targetMethod = config.method.toLowerCase();
+        const targetMethod: string = config.method?.toLowerCase() || 'get';
         const requestList = this.requestList.filter(value => {
             const originUrl = value.config.url + (value.config.baseURL || '');
             if (typeof originUrl === "string" && originUrl.includes(':')) {
@@ -57,13 +58,16 @@ export class MockAdapter{
         if (requestList.length <= 1) {
             return requestList[0]
         }
-        // support RESTful API
-        if (requestList.length > 1) {
-            return requestList.find(item => {
-                const method = item.config.method.toLowerCase();
-                return method === targetMethod
-            })
+        // we should diff similar url.such as /a/:id1/b/:id2  and /a/b/c/:id2
+        if (!requestList.every(value => value.config.url === requestList[0].config.url)) {
+            const bestMatchUrl = stringSimilarity.findBestMatch(targetUrl, requestList.map(value => value.config.url)).bestMatch.target;
+            return requestList.find(value => value.config.url === bestMatchUrl)
         }
+        // support RESTful API
+        return requestList.find(item => {
+            const method = item.config.method?.toLowerCase() || 'get';
+            return method === targetMethod
+        });
     }
     private adapter:AxiosAdapter = (config: AxiosRequestConfig) => {
         const requestItem = this.findRequest(config);
